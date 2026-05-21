@@ -26,9 +26,7 @@
         <div id="timer">剩餘時間：30:00</div>
     </div>
 
-    <form id="quizForm" action="https://formspree.io/f/mqkrbpzl" method="POST">
-        <input type="hidden" name="user_name" id="hiddenName">
-
+    <form id="quizForm">
         <div style="margin: 20px 0; font-size: 1.1rem;">
             受測者：<strong id="displayName">載入中...</strong>
         </div>
@@ -37,14 +35,14 @@
 
         <div class="question">
             <p>1. JavaScript 中，哪個關鍵字可以用來宣告「不可修改」的常數？</p>
-            <label><input type="radio" name="q1" value="var" required> var</label>
+            <label><input type="radio" name="q1" value="var"> var</label>
             <label><input type="radio" name="q1" value="let"> let</label>
             <label><input type="radio" name="q1" value="const"> const</label>
         </div>
 
         <div class="question">
             <p>2. 下列哪個標籤用於定義 HTML 的超連結？</p>
-            <label><input type="radio" name="q2" value="link" required> &lt;link&gt;</label>
+            <label><input type="radio" name="q2" value="link"> &lt;link&gt;</label>
             <label><input type="radio" name="q2" value="a"> &lt;a&gt;</label>
             <label><input type="radio" name="q2" value="href"> &lt;href&gt;</label>
         </div>
@@ -55,32 +53,53 @@
 </div>
 
 <script>
-    const FORMSPREE_URL = "https://formspree.io/f/mqkrbpzl"; // 核心發送網址
+    const FORMSPREE_URL = "https://formspree.io/f/mvzykjye"; 
     const TEST_DURATION = 30 * 60; // 30 分鐘
     let timeLeft;
-    let isSubmitting = false; 
 
     const timerDisplay = document.getElementById('timer');
     const form = document.getElementById('quizForm');
     const submitBtn = document.getElementById('submitBtn');
     const statusMsg = document.getElementById('status-msg');
 
-    // --- 安全檢查：確保有輸入名字才能考試 ---
-    const userName = sessionStorage.getItem('quiz_user_name');
+    // 1. 取得姓名（優先從快取拿，防重開）
+    let userName = localStorage.getItem('saved_user_name') || sessionStorage.getItem('quiz_user_name');
+    
     if (!userName) {
         alert('請先輸入姓名再開始測驗！');
         window.location.href = 'index.html';
     } else {
-        document.getElementById('hiddenName').value = userName;
+        localStorage.setItem('saved_user_name', userName);
         document.getElementById('displayName').textContent = userName;
     }
 
-    // --- 倒計時邏輯 ---
+    // 2. 檢查是否已經被標記為「已交卷」或「偷關網頁」
+    if (localStorage.getItem('quiz_submitted') === 'true') {
+        form.innerHTML = "<h3>⚠️ 偵測到重複進入或中途關閉網頁！您之前的答案已被強制提交，無法再次作答。</h3>";
+        timerDisplay.textContent = "已鎖定";
+    }
+
+    // 3. 倒計時與本地即時同步
     let startTime = localStorage.getItem('test_start_time');
     if (!startTime) {
         startTime = Date.now();
         localStorage.setItem('test_start_time', startTime);
     }
+
+    // 監聽使用者的選擇，只要一勾選，立刻存到電腦裡，防 Ctrl+W
+    form.addEventListener('change', () => {
+        const formData = new FormData(form);
+        const savedAnswers = {};
+        formData.forEach((value, key) => { savedAnswers[key] = value; });
+        localStorage.setItem('saved_answers', JSON.stringify(savedAnswers));
+    });
+
+    // 恢復之前存下的答案（如果他重開網頁）
+    const localAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
+    Object.keys(localAnswers).forEach(key => {
+        const input = form.querySelector(`input[name="${key}"][value="${localAnswers[key]}"]`);
+        if (input) input.checked = true;
+    });
 
     const countdown = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -89,7 +108,7 @@
         if (timeLeft <= 0) {
             clearInterval(countdown);
             timerDisplay.textContent = "時間到！";
-            handleFinalSubmit("時間到（強制提交）", false);
+            sendToFormspree("時間到（強制提交）");
         } else {
             const mins = Math.floor(timeLeft / 60);
             const secs = timeLeft % 60;
@@ -97,71 +116,66 @@
         }
     }, 1000);
 
-    // --- 整合提交核心邏輯 ---
-    // isLeavingPage: 如果是關閉視窗，設為 true，走 keepalive 背景發送
-    function handleFinalSubmit(reasonText, isLeavingPage = false) {
-        if (isSubmitting) return;
-        isSubmitting = true;
+    // 4. 發送資料到 Formspree
+    function sendToFormspree(statusText) {
+        // 先鎖死本地
+        localStorage.setItem('quiz_submitted', 'true');
+        
+        submitBtn.disabled = true;
+        submitBtn.textContent = "正在提交...";
+        statusMsg.textContent = "正在發送答案...";
 
-        // 清除快取，不讓他們有重來的機會
-        localStorage.removeItem('test_start_time');
-        sessionStorage.removeItem('quiz_user_name');
+        // 重新打包最新答案
+        const finalData = new FormData();
+        finalData.append("user_name", userName);
+        finalData.append("status", statusText);
+        
+        // 把存在本地或目前的答案塞進去
+        const currentAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
+        Object.keys(currentAnswers).forEach(key => {
+            finalData.append(key, currentAnswers[key]);
+        });
 
-        // 打包表單資料
-        const formData = new FormData(form);
-        formData.append("remaining_time", reasonText);
-
-        if (isLeavingPage) {
-            // 💡 關鍵：當受測者關閉分頁時，用 keepalive 強制網際網路在背景送完資料
-            fetch(FORMSPREE_URL, {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' },
-                keepalive: true 
-            });
-        } else {
-            // 如果是正常手動提交或時間到，走一般 fetch，並給予成功提示畫面
-            submitBtn.disabled = true;
-            submitBtn.textContent = "正在提交...";
-            statusMsg.textContent = "正在發送答案...";
-
-            fetch(FORMSPREE_URL, {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' }
-            }).then(response => {
-                if (response.ok) {
-                    statusMsg.style.color = "green";
-                    statusMsg.textContent = "答案已成功寄出！感謝您的參與。";
-                    submitBtn.textContent = "完成測驗";
-                } else {
-                    statusMsg.style.color = "red";
-                    statusMsg.textContent = "發送失敗，請確認網路或聯繫主考官。";
-                }
-            }).catch(() => {
-                statusMsg.style.color = "red";
-                statusMsg.textContent = "網路錯誤，發送失敗。";
-            });
-        }
+        fetch(FORMSPREE_URL, {
+            method: 'POST',
+            body: finalData,
+            headers: { 'Accept': 'application/json' }
+        }).then(res => {
+            if (res.ok) {
+                statusMsg.style.color = "green";
+                statusMsg.textContent = "答案已成功寄出！";
+                // 成功後清空答案與時間，但保留 submitted 鎖定標記
+                localStorage.removeItem('test_start_time');
+                localStorage.removeItem('saved_answers');
+            }
+        });
     }
 
-    // --- 手動點擊按鈕提交 ---
+    // 手動提交
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
-        handleFinalSubmit(`手動提交（剩餘 ${mins}分${secs}秒）`, false);
+        sendToFormspree(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
     });
 
-    // --- 💡 防作弊：中途關閉網頁、重整網頁、按上一頁 ---
-    window.addEventListener('beforeunload', (e) => {
-        if (!isSubmitting) {
-            // 抓出剩餘時間
+    // 💡 補刀防線：如果他在考試中途嘗試「重新整理」，在重整的那一刻，順手把答案送出去（通常重整時 fetch 是能成功的）
+    window.addEventListener('beforeunload', () => {
+        if (localStorage.getItem('quiz_submitted') !== 'true') {
             const mins = Math.floor(timeLeft / 60);
             const secs = timeLeft % 60;
             
-            // 啟動背景發信
-            handleFinalSubmit(`中途關閉網頁/離開（系統強制交卷 - 當時剩餘 ${mins}分${secs}秒）`, true);
+            // 標記他打算離開了，下次進來直接鎖死並送出
+            localStorage.setItem('quiz_submitted', 'true');
+            
+            // 嘗試進行最後的微弱發送
+            const finalData = new FormData();
+            finalData.append("user_name", userName);
+            finalData.append("status", `中途關閉或重整（當時剩餘 ${mins}分${secs}秒）`);
+            const currentAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
+            Object.keys(currentAnswers).forEach(key => finalData.append(key, currentAnswers[key]));
+            
+            fetch(FORMSPREE_URL, { method: 'POST', body: finalData, headers: { 'Accept': 'application/json' }, keepalive: true });
         }
     });
 </script>
