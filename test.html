@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測驗進行中</title>
+    <style>
+        :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
+        body { font-family: -apple-system, "Segoe UI", sans-serif; background: var(--bg-color); line-height: 1.6; padding: 20px; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { position: sticky; top: 0; background: white; padding: 10px 0; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        #timer { font-size: 1.2rem; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 5px 15px; border-radius: 20px; }
+        .question { margin-bottom: 25px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .question p { font-weight: bold; margin-bottom: 10px; }
+        label { display: block; margin: 8px 0; cursor: pointer; }
+        button { background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; transition: 0.3s; font-weight: bold;}
+        button:hover { background: #1d4ed8; }
+        #status-msg { margin-top: 15px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>期末模擬測驗</h2>
+        <div id="timer">剩餘時間：30:00</div>
+    </div>
+
+    <form id="quizForm" action="https://formspree.io/f/mqkrbpzl" method="POST">
+        <input type="hidden" name="user_name" id="hiddenName">
+
+        <div style="margin: 20px 0; font-size: 1.1rem;">
+            受測者：<strong id="displayName">載入中...</strong>
+        </div>
+
+        <hr>
+
+        <div class="question">
+            <p>1. JavaScript 中，哪個關鍵字可以用來宣告「不可修改」的常數？</p>
+            <label><input type="radio" name="q1" value="var" required> var</label>
+            <label><input type="radio" name="q1" value="let"> let</label>
+            <label><input type="radio" name="q1" value="const"> const</label>
+        </div>
+
+        <div class="question">
+            <p>2. 下列哪個標籤用於定義 HTML 的超連結？</p>
+            <label><input type="radio" name="q2" value="link" required> &lt;link&gt;</label>
+            <label><input type="radio" name="q2" value="a"> &lt;a&gt;</label>
+            <label><input type="radio" name="q2" value="href"> &lt;href&gt;</label>
+        </div>
+
+        <button type="submit" id="submitBtn">提交答案</button>
+        <p id="status-msg"></p>
+    </form>
+</div>
+
+<script>
+    const FORMSPREE_URL = "https://formspree.io/f/mqkrbpzl"; // 核心發送網址
+    const TEST_DURATION = 30 * 60; // 30 分鐘
+    let timeLeft;
+    let isSubmitting = false; 
+
+    const timerDisplay = document.getElementById('timer');
+    const form = document.getElementById('quizForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMsg = document.getElementById('status-msg');
+
+    // --- 安全檢查：確保有輸入名字才能考試 ---
+    const userName = sessionStorage.getItem('quiz_user_name');
+    if (!userName) {
+        alert('請先輸入姓名再開始測驗！');
+        window.location.href = 'index.html';
+    } else {
+        document.getElementById('hiddenName').value = userName;
+        document.getElementById('displayName').textContent = userName;
+    }
+
+    // --- 倒計時邏輯 ---
+    let startTime = localStorage.getItem('test_start_time');
+    if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem('test_start_time', startTime);
+    }
+
+    const countdown = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timeLeft = TEST_DURATION - elapsed;
+
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            timerDisplay.textContent = "時間到！";
+            handleFinalSubmit("時間到（強制提交）", false);
+        } else {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerDisplay.textContent = `剩餘時間：${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+    }, 1000);
+
+    // --- 整合提交核心邏輯 ---
+    // isLeavingPage: 如果是關閉視窗，設為 true，走 keepalive 背景發送
+    function handleFinalSubmit(reasonText, isLeavingPage = false) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
+        // 清除快取，不讓他們有重來的機會
+        localStorage.removeItem('test_start_time');
+        sessionStorage.removeItem('quiz_user_name');
+
+        // 打包表單資料
+        const formData = new FormData(form);
+        formData.append("remaining_time", reasonText);
+
+        if (isLeavingPage) {
+            // 💡 關鍵：當受測者關閉分頁時，用 keepalive 強制網際網路在背景送完資料
+            fetch(FORMSPREE_URL, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' },
+                keepalive: true 
+            });
+        } else {
+            // 如果是正常手動提交或時間到，走一般 fetch，並給予成功提示畫面
+            submitBtn.disabled = true;
+            submitBtn.textContent = "正在提交...";
+            statusMsg.textContent = "正在發送答案...";
+
+            fetch(FORMSPREE_URL, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            }).then(response => {
+                if (response.ok) {
+                    statusMsg.style.color = "green";
+                    statusMsg.textContent = "答案已成功寄出！感謝您的參與。";
+                    submitBtn.textContent = "完成測驗";
+                } else {
+                    statusMsg.style.color = "red";
+                    statusMsg.textContent = "發送失敗，請確認網路或聯繫主考官。";
+                }
+            }).catch(() => {
+                statusMsg.style.color = "red";
+                statusMsg.textContent = "網路錯誤，發送失敗。";
+            });
+        }
+    }
+
+    // --- 手動點擊按鈕提交 ---
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        handleFinalSubmit(`手動提交（剩餘 ${mins}分${secs}秒）`, false);
+    });
+
+    // --- 💡 防作弊：中途關閉網頁、重整網頁、按上一頁 ---
+    window.addEventListener('beforeunload', (e) => {
+        if (!isSubmitting) {
+            // 抓出剩餘時間
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            
+            // 啟動背景發信
+            handleFinalSubmit(`中途關閉網頁/離開（系統強制交卷 - 當時剩餘 ${mins}分${secs}秒）`, true);
+        }
+    });
+</script>
+
+</body>
+</html>

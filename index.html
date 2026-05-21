@@ -3,151 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>30分鐘限時測驗</title>
+    <title>線上測驗 - 登入說明</title>
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --bg-color: #f8fafc;
-        }
-        body { font-family: -apple-system, "Segoe UI", sans-serif; background: var(--bg-color); line-height: 1.6; padding: 20px; }
-        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { position: sticky; top: 0; background: white; padding: 10px 0; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
-        #timer { font-size: 1.2rem; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 5px 15px; border-radius: 20px; }
-        .question { margin-bottom: 25px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
-        .question p { font-weight: bold; margin-bottom: 10px; }
-        label { display: block; margin: 8px 0; cursor: pointer; }
-        button { background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; transition: 0.3s; }
+        body { font-family: -apple-system, "Segoe UI", sans-serif; background: #f8fafc; padding: 20px; line-height: 1.6; }
+        .container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .rule-box { background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
+        input[type="text"] { width: 100%; padding: 10px; margin: 10px 0 20px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; font-weight: bold; }
         button:hover { background: #1d4ed8; }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
-        #status-msg { margin-top: 15px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h2>期末模擬測驗</h2>
-        <div id="timer">剩餘時間：30:00</div>
+    <h2>📋 期末模擬測驗說明</h2>
+    
+    <div class="rule-box">
+        <strong>⚠️ 測驗重要守則（請詳閱）：</strong>
+        <ul>
+            <li>本測驗時間限制為 <strong>30 分鐘</strong>。</li>
+            <li>按下「開始測驗」後，倒計時即刻開始，<strong>中途重新整理網頁時間不會重置</strong>。</li>
+            <li><strong>請勿中途關閉網頁、切換分頁或更換瀏覽器</strong>。若中途關閉或離開頁面，系統將會將當前已填寫的答案<strong>強制自動提交</strong>，並以第一次提交的內容為準。</li>
+        </ul>
     </div>
 
-    <form id="quizForm" action="https://formspree.io/f/mvzykjye" method="POST">
-        <div style="margin: 20px 0;">
-            <label>測驗者姓名：<input type="text" name="user_name" required></label>
-        </div>
-
-        <hr>
-
-        <div class="question">
-            <p>1. JavaScript 中，哪個關鍵字可以用來宣告「不可修改」的常數？</p>
-            <label><input type="radio" name="q1" value="var" required> var</label>
-            <label><input type="radio" name="q1" value="let"> let</label>
-            <label><input type="radio" name="q1" value="const"> const</label>
-        </div>
-
-        <div class="question">
-            <p>2. 下列哪個標籤用於定義 HTML 的超連結？</p>
-            <label><input type="radio" name="q2" value="link" required> &lt;link&gt;</label>
-            <label><input type="radio" name="q2" value="a"> &lt;a&gt;</label>
-            <label><input type="radio" name="q2" value="href"> &lt;href&gt;</label>
-        </div>
-
-        <button type="submit" id="submitBtn">提交答案</button>
-        <p id="status-msg"></p>
+    <form id="loginForm">
+        <label><strong>請輸入您的受測者姓名：</strong></label>
+        <input type="text" id="userName" required placeholder="例如：王小明">
+        <button type="submit">我已瞭解守則，開始測驗</button>
     </form>
 </div>
 
 <script>
-    // --- 配置區域 ---
-    const TEST_DURATION = 30 * 60; // 30 分鐘，單位秒
-
-    let timeLeft;
-    const timerDisplay = document.getElementById('timer');
-    const form = document.getElementById('quizForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const statusMsg = document.getElementById('status-msg');
-
-    // --- 倒計時邏輯 ---
-    function initTimer() {
-        let startTime = localStorage.getItem('test_start_time');
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('userName').value.trim();
         
-        if (!startTime) {
-            startTime = Date.now();
-            localStorage.setItem('test_start_time', startTime);
-        }
-
-        const countdown = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            timeLeft = TEST_DURATION - elapsed;
-
-            if (timeLeft <= 0) {
-                clearInterval(countdown);
-                timerDisplay.textContent = "時間到！";
-                autoSubmit();
-            } else {
-                const mins = Math.floor(timeLeft / 60);
-                const secs = timeLeft % 60;
-                timerDisplay.textContent = `剩餘時間：${mins}:${secs < 10 ? '0' : ''}${secs}`;
-            }
-        }, 1000);
-    }
-
-    // --- 自動過期鎖定 ---
-    function autoSubmit() {
-        submitBtn.disabled = true;
-        statusMsg.style.color = "orange";
-        statusMsg.textContent = "時間已到，正在自動提交答案...";
+        // 將姓名暫存到 sessionStorage，帶到下一頁
+        sessionStorage.setItem('quiz_user_name', name);
         
-        // 鎖死所有題目欄位
-        const inputs = form.querySelectorAll('input');
-        inputs.forEach(i => i.disabled = true);
-
-        // 觸發原生提交
-        submitForm();
-    }
-
-    // --- 表單提交監聽 ---
-    form.addEventListener('submit', (e) => {
-        // 使用者手動提交時，執行送出處理
-        submitBtn.disabled = true;
-        submitBtn.textContent = "正在提交，請稍候...";
-        
-        // 把剩餘時間塞進表單裡
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'remaining_time';
-        hiddenInput.value = `${Math.floor(timeLeft / 60)}分${timeLeft % 60}秒`;
-        form.appendChild(hiddenInput);
-
-        // 測驗結束，清除 localStorage 緩存
-        localStorage.removeItem('test_start_time');
+        // 跳轉到考試頁
+        window.location.href = 'test.html';
     });
-
-    // --- 解法二：核心提交函數（繞過離線 AJAX 限制） ---
-    function submitForm() {
-        submitBtn.textContent = "提交中，請稍候...";
-        statusMsg.style.color = "#333";
-        statusMsg.textContent = "正在發送答案...";
-        
-        // 在自動提交前，解除剛剛為了防止使用者修改而做的 disabled 狀態（否則答案傳不出去）
-        const inputs = form.querySelectorAll('input');
-        inputs.forEach(i => i.disabled = false);
-
-        // 加上剩餘時間資訊到表單中
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'remaining_time';
-        hiddenInput.value = "時間到（強制提交）";
-        form.appendChild(hiddenInput);
-
-        // 清除時間緩存
-        localStorage.removeItem('test_start_time');
-
-        // 使用 HTML 原生行為整頁提交給 Formspree
-        form.submit();
-    }
-
-    // 啟動倒計時
-    initTimer();
 </script>
 
 </body>
