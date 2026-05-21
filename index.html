@@ -23,7 +23,7 @@
         <ul>
             <li>本測驗時間限制為 <strong>30 分鐘</strong>。</li>
             <li>按下「開始測驗」後，倒計時即刻開始，<strong>中途重新整理網頁時間不會重置</strong>。</li>
-            <li><strong>請勿中途關閉網頁、切換分頁或更換瀏覽器</strong>。若中途關閉或離開頁面，系統將會將當前已填寫的答案<strong>強制自動提交</strong>，並以第一次提交的內容為準。</li>
+            <li><strong>請勿中途關閉網頁或離開頁面</strong>。若中途關閉，系統將會在您下次打開時<strong>強制自動交卷</strong>，並以第一次的內容為準。</li>
         </ul>
     </div>
 
@@ -35,14 +35,19 @@
 </div>
 
 <script>
+    // 如果之前已經徹底考完交卷了，不允許再進來
+    if (localStorage.getItem('quiz_completed_fully') === 'true') {
+        document.body.innerHTML = "<div class='container'><h2>⚠️ 您已完成此測驗，無法重複作答。</h2></div>";
+    }
+
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const name = document.getElementById('userName').value.trim();
         
-        // 將姓名暫存到 sessionStorage，帶到下一頁
+        // 雙重備份姓名，確保 test.html 絕對抓得到
         sessionStorage.setItem('quiz_user_name', name);
+        localStorage.setItem('saved_user_name', name);
         
-        // 跳轉到考試頁
         window.location.href = 'test.html';
     });
 </script>
