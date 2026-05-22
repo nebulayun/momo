@@ -3,66 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>測驗進行中</title>
+    <title>研發工程師 招募測評 - 進行中</title>
     <style>
         :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
         body { font-family: -apple-system, "Segoe UI", sans-serif; background: var(--bg-color); line-height: 1.6; padding: 20px; }
-        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { position: sticky; top: 0; background: white; padding: 10px 0; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        .container { max-width: 850px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { position: sticky; top: 0; background: white; padding: 15px 0; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
         #timer { font-size: 1.2rem; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 5px 15px; border-radius: 20px; }
-        .question { margin-bottom: 25px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
-        .question p { font-weight: bold; margin-bottom: 10px; }
-        label { display: block; margin: 8px 0; cursor: pointer; }
-        button { background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; transition: 0.3s; font-weight: bold;}
+        
+        .section-title { background: #1e293b; color: white; padding: 10px 15px; border-radius: 6px; margin-top: 30px; margin-bottom: 15px; }
+        .context-box { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #64748b; font-size: 0.95rem; }
+        .code-box { background: #0f172a; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: "Courier New", Courier, monospace; font-size: 0.9rem; overflow-x: auto; white-space: pre; margin: 15px 0; }
+        
+        .question { margin-bottom: 25px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+        .question p { font-weight: bold; margin-bottom: 10px; color: #0f172a; }
+        .hint { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; }
+        
+        textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 1rem; line-height: 1.5; }
+        textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        button { background: var(--primary-color); color: white; border: none; padding: 14px 28px; border-radius: 6px; cursor: pointer; font-size: 1.1rem; width: 100%; transition: 0.3s; font-weight: bold; margin-top: 20px; }
         button:hover { background: #1d4ed8; }
         #status-msg { margin-top: 15px; text-align: center; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9rem; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+        th { background: #e2e8f0; }
     </style>
 </head>
 <body>
 
 <div class="container" id="mainContainer">
     <div class="header">
-        <h2>期末模擬測驗</h2>
-        <div id="timer">剩餘時間：30:00</div>
+        <h2>💻 研發工程師 招募測評</h2>
+        <div id="timer">剩餘時間：40:00</div>
     </div>
 
     <form id="quizForm">
         <div style="margin: 20px 0; font-size: 1.1rem;">
-            受測者：<strong id="displayName">載入中...</strong>
+            受測者姓名：<strong id="displayName">載入中...</strong>
+            <span style="color: #64748b; font-size: 0.9rem; margin-left: 15px;">（請以繁體中文作答｜總建議時間：40分鐘）</span>
         </div>
 
         <hr>
 
-        <div class="question">
-            <p>1. JavaScript 中，哪個關鍵字可以用來宣告「不可修改」的常數？</p>
-            <label><input type="radio" name="q1" value="var"> var</label>
-            <label><input type="radio" name="q1" value="let"> let</label>
-            <label><input type="radio" name="q1" value="const"> const</label>
+        <div class="section-title">題目一：PRD分析題（建議作答時間：20分鐘）</div>
+        
+        <div class="context-box">
+            <strong>【情境說明】</strong><br>
+            你剛加入技術部門，PM傳來一份促銷活動的需求草稿，希望下週開始排開發。請閱讀這份PRD，並提交你的書面回應。
+            <br><br>
+            <strong>📄 PRD草稿：促銷活動自動推播系統</strong><br>
+            節慶促銷期間，業務團隊需要手動通知系統設定折扣，常常發生活動開始後才上線、或時間設定錯誤導致超賣的問題。希望打造一套系統，讓業務可以自己設定活動，系統自動在對的時間推播給用戶。
+            
+            <table>
+                <tr><th style="width: 25%;">項目</th><th>內容</th></tr>
+                <tr><td><strong>功能需求</strong></td><td>1. 業務可以新增活動，設定名稱、時間、折扣比例、適用商品<br>2. 活動時間到了，系統自動推播App通知給用戶<br>3. 推播要快，最好可以即時<br>4. 活動結束後折扣自動取消<br>5. 如果推播失敗要重試</td></tr>
+                <tr><td><strong>技術方向<br>(PM 建議)</strong></td><td>用一個排程服務每分鐘掃描活動表，找到該上線的就推播，推播用現有的通知API。</td></tr>
+                <tr><td><strong>非功能需求</strong></td><td>系統要穩定、速度要快、用戶體驗要好。</td></tr>
+                <tr><td><strong>上線時機</strong></td><td>下個月的雙十一活動前上線，大約還有三週。</td></tr>
+            </table>
         </div>
 
         <div class="question">
-            <p>2. 下列哪個標籤用於定義 HTML 的超連結？</p>
-            <label><input type="radio" name="q2" value="link"> &lt;link&gt;</label>
-            <label><input type="radio" name="q2" value="a"> &lt;a&gt;</label>
-            <label><input type="radio" name="q2" value="href"> &lt;href&gt;</label>
+            <p>第一部分：找出問題</p>
+            <div class="hint">請列出這份PRD中你認為有問題或不清楚的地方，說明問題是什麼、以及你的看法或建議。（建議作答長度：300–500字）</div>
+            <textarea name="q1_part1" rows="6" placeholder="請在此輸入您的作答內容..."></textarea>
         </div>
 
-        <button type="submit" id="submitBtn">提交答案</button>
+        <div class="question">
+            <p>第二部分：系統設計概述</p>
+            <div class="hint">假設PRD問題已釐清，請說明你會如何設計這個系統的核心架構——主要元件、元件間如何溝通、以及你認為最需要處理的技術風險。</div>
+            <textarea name="q1_part2" rows="6" placeholder="請在此輸入您的作答內容..."></textarea>
+        </div>
+
+        <div class="question">
+            <p>第三部分：AI協作說明</p>
+            <div class="hint">作答過程中是否有使用AI工具？如是：請說明你在哪個環節使用、怎麼用、以及你自己負責判斷什麼。</div>
+            <textarea name="q1_part3" rows="3" placeholder="有/無。若有，請說明使用環節與協作邏輯..."></textarea>
+        </div>
+
+
+        <div class="section-title">題目二：Code Review題（建議作答時間：20分鐘）</div>
+        
+        <div class="context-box">
+            <strong>【情境說明】</strong><br>
+            以下是一位同事（或AI工具）寫的促銷活動推播功能程式碼。請做Code Review，找出你認為最嚴重的三個問題，並提供優化方向建議。
+            
+            <div class="code-box">import time
+import requests
+from database import get_db
+
+def send_promotions():
+    db = get_db()
+    promotions = db.query('SELECT * FROM promotions')
+   
+    for promo in promotions:
+        if promo['start_time'] <= time.time():
+            users = db.query('SELECT * FROM users')
+            for user in users:
+                try:
+                    requests.post(
+                        'http://notify-api/send',
+                        json={
+                            'user_id': user['id'],
+                            'message': '限時優惠！' + promo['name'] + '折扣開始！',
+                            'discount': promo['discount']
+                        },
+                    )
+                except:
+                    pass
+       
+    db.close()
+
+while True:
+    send_promotions()
+    time.sleep(60)</div>
+        </div>
+
+        <div class="question">
+            <p>第一部分：找出三個最嚴重的問題</p>
+            <div class="hint">從這段程式碼中，挑出你認為最嚴重的三個問題，說明問題在哪裡、會造成什麼影響、以及你會怎麼修正。（建議作答長度：300–500字）</div>
+            <textarea name="q2_part1" rows="6" placeholder="請在此輸入您的作答內容..."></textarea>
+        </div>
+
+        <div class="question">
+            <p>第二部分：優化方向建議</p>
+            <div class="hint">如果要讓這段程式碼能上到正式環境，你還會做哪些調整？請說明你的優化方向與優先順序。</div>
+            <textarea name="q2_part2" rows="6" placeholder="請在此輸入您的作答內容..."></textarea>
+        </div>
+
+        <div class="question">
+            <p>第三部分：AI協作說明</p>
+            <div class="hint">作答過程中是否有使用AI工具？請說明你在哪個環節使用、怎麼用、以及你自己負責判斷什麼。沒有使用也沒關係，如實說明即可。</div>
+            <textarea name="q2_part3" rows="3" placeholder="有/無。若有，請說明使用環節與協作邏輯..."></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">提交測驗卷</button>
         <p id="status-msg"></p>
     </form>
 </div>
 
 <script>
-    const FORMSPREE_URL = "https://formspree.io/f/mvzykjye"; 
-    const TEST_DURATION = 30 * 60; 
+    const FORMSPREE_URL = "https://formspree.io/f/mqkrbpzl"; 
+    const TEST_DURATION = 40 * 60; // 配合題本整套測驗改為 40 分鐘
     let timeLeft;
+    let isSubmitting = false; 
 
     const timerDisplay = document.getElementById('timer');
     const form = document.getElementById('quizForm');
     const submitBtn = document.getElementById('submitBtn');
     const statusMsg = document.getElementById('status-msg');
 
-    // 1. 嚴格取得姓名
+    // 1. 取得姓名
     let userName = localStorage.getItem('saved_user_name') || sessionStorage.getItem('quiz_user_name');
     
     if (!userName || userName === "null") {
@@ -74,12 +167,9 @@
 
     // 2. 檢查防作弊鎖定狀態
     if (localStorage.getItem('quiz_submitted') === 'true') {
-        // 渲染鎖定畫面
         document.getElementById('mainContainer').innerHTML = "<h3>⚠️ 偵測到重複進入或中途關閉網頁！您之前的答案已被強制提交，無法再次作答。</h3>";
         timerDisplay.textContent = "已鎖定";
-        
-        // 核心修正：發現被鎖定時，立刻自動將最後存下來的答案「補寄」出去
-        sendToFormspree("偵測到重開網頁（系統自動補交存檔）");
+        sendWithFetch("偵測到重開網頁（系統自動補交存檔）");
     }
 
     // 3. 倒計時邏輯
@@ -89,19 +179,19 @@
         localStorage.setItem('test_start_time', startTime);
     }
 
-    // 答案即時同步快取
-    form.addEventListener('change', () => {
+    // 答案即時字字快取同步
+    form.addEventListener('input', () => {
         const formData = new FormData(form);
         const savedAnswers = {};
         formData.forEach((value, key) => { savedAnswers[key] = value; });
         localStorage.setItem('saved_answers', JSON.stringify(savedAnswers));
     });
 
-    // 恢復快取答案
+    // 恢復快取中的長文字內容
     const localAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
     Object.keys(localAnswers).forEach(key => {
-        const input = form.querySelector(`input[name="${key}"][value="${localAnswers[key]}"]`);
-        if (input) input.checked = true;
+        const textarea = form.querySelector(`textarea[name="${key}"]`);
+        if (textarea) textarea.value = localAnswers[key];
     });
 
     const countdown = setInterval(() => {
@@ -111,7 +201,7 @@
         if (timeLeft <= 0) {
             clearInterval(countdown);
             timerDisplay.textContent = "時間到！";
-            sendToFormspree("時間到（強制提交）");
+            sendWithFetch("時間到（強制提交）");
         } else {
             const mins = Math.floor(timeLeft / 60);
             const secs = timeLeft % 60;
@@ -119,16 +209,8 @@
         }
     }, 1000);
 
-    // 4. 核心發送函數
-    function sendToFormspree(statusText) {
-        localStorage.setItem('quiz_submitted', 'true');
-        
-        if(submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = "正在提交...";
-        }
-        if(statusMsg) statusMsg.textContent = "正在發送答案...";
-
+    // 4. 打包資料
+    function createFormData(statusText) {
         const finalData = new FormData();
         finalData.append("user_name", userName);
         finalData.append("status", statusText);
@@ -137,39 +219,67 @@
         Object.keys(currentAnswers).forEach(key => {
             finalData.append(key, currentAnswers[key]);
         });
+        return finalData;
+    }
+
+    // 方案 A：手動提交或時間到提交（使用 Fetch）
+    function sendWithFetch(statusText) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        
+        localStorage.setItem('quiz_submitted', 'true');
+        
+        if(submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "正在提交..."; }
+        if(statusMsg) statusMsg.textContent = "正在發送答案，請勿關閉視窗...";
+
+        const data = createFormData(statusText);
 
         fetch(FORMSPREE_URL, {
             method: 'POST',
-            body: finalData,
+            body: data,
             headers: { 'Accept': 'application/json' }
         }).then(res => {
             if (res.ok) {
                 if(statusMsg) {
                     statusMsg.style.color = "green";
-                    statusMsg.textContent = "答案已成功寄出！";
+                    statusMsg.textContent = "答案已成功寄出！感謝您的參與。";
                 }
-                // 徹底考完，打上終極印記
                 localStorage.setItem('quiz_completed_fully', 'true');
                 localStorage.removeItem('test_start_time');
                 localStorage.removeItem('saved_answers');
             }
-        }).catch(()=>{
-            if(statusMsg) statusMsg.textContent = "發送中或已自動存檔。";
         });
     }
 
-    // 手動提交
+    // 🚀 方案 B：高級特務（關閉視窗、分頁背景瞬發）
+    function sendWithBeacon(statusText) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        
+        localStorage.setItem('quiz_submitted', 'true');
+        const data = createFormData(statusText);
+        
+        navigator.sendBeacon(FORMSPREE_URL, data);
+        
+        localStorage.setItem('quiz_completed_fully', 'true');
+        localStorage.removeItem('test_start_time');
+        localStorage.removeItem('saved_answers');
+    }
+
+    // 手動提交按鈕
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
-        sendToFormspree(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
+        sendWithFetch(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
     });
 
-    // 離開網頁時打上鎖定標記，但不依賴它發信（改由下次進來時補發）
-    window.addEventListener('beforeunload', () => {
+    // 監聽各種手段的關閉與離開事件，直接拋出 sendBeacon
+    window.addEventListener('pagehide', () => {
         if (localStorage.getItem('quiz_completed_fully') !== 'true') {
-            localStorage.setItem('quiz_submitted', 'true');
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            sendWithBeacon(`中途關閉或重整（當時剩餘 ${mins}分${secs}秒）`);
         }
     });
 </script>
