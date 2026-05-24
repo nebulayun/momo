@@ -29,9 +29,32 @@
         table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9rem; }
         th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
         th { background: #e2e8f0; }
+
+        /* 全螢幕提交遮罩樣式 */
+        #loadingOverlay {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: #f8fafc; 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center;
+        }
     </style>
 </head>
 <body>
+
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
+<div id="loadingOverlay">
+    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;">
+        <h2 style="color: #2563eb; margin: 0 0 10px 0;">正在發送答案，請稍候...</h2>
+        <p style="color: #64748b; margin: 0;">請勿關閉或重新整理視窗</p>
+    </div>
+</div>
 
 <div class="container" id="mainContainer">
     <div class="header">
@@ -40,6 +63,9 @@
     </div>
 
     <form id="quizForm">
+        <input type="hidden" name="user_name" id="gas_user_name">
+        <input type="hidden" name="status" id="gas_status">
+
         <div style="margin: 20px 0; font-size: 1.1rem;">
             受測者姓名：<strong id="displayName">載入中...</strong>
             <span style="color: #64748b; font-size: 0.9rem; margin-left: 15px;">（請以繁體中文作答｜總建議時間：40分鐘）</span>
@@ -56,9 +82,8 @@
 </div>
 
 <script>
-// 使用你提供的 GAS 網址
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyAst1Zb0_drVIEFYXkxXbeYuSiZtCATB_bIgRE-mGVpxoSQEMTZxg1ZgiDpNzs6Ozu/exec"; 
-const TEST_DURATION = 0.5 * 60; // 測試用：改為 0.5 分鐘 (30秒)
+const TEST_DURATION = 0.5 * 60; // 測試用：0.5 分鐘 (30秒)
 let timeLeft;
 let isSubmitting = false; 
 
@@ -86,7 +111,7 @@ const mockApiData = [
     },
     {
         sectionTitle: "題目二：Code Review題（建議作答時間：20分鐘）",
-        contextHtml: `<strong>【情境說明】</strong><br>以下是一位同事（或AI工具）寫的促銷活動推播功能程式碼。請做Code Review，找出你認為最嚴重的三個問題，並提供優化方向建議。
+        contextHtml: `<strong>【情境說明】</strong><br>以下是一位同事（或AI工具）寫的促銷活動推播功能程式碼。請做Code Review，找出你認為最嚴重的三個問題，並提供優化方向建議.
         <div class="code-box">import time\nimport requests\nfrom database import get_db\n\ndef send_promotions():\n    db = get_db()\n    promotions = db.query('SELECT * FROM promotions')\n   \n    for promo in promotions:\n        if promo['start_time'] <= time.time():\n            users = db.query('SELECT * FROM users')\n            for user in users:\n                try:\n                    requests.post(\n                        'http://notify-api/send',\n                        json={\n                            'user_id': user['id'],\n                            'message': '限時優惠！' + promo['name'] + '折扣開始！',\n                            'discount': promo['discount']\n                        },\n                    )\n                except:\n                    pass\n       \n    db.close()\n\nwhile True:\n    send_promotions()\n    time.sleep(60)</div>`,
         questions: [
             { id: "q2_part1", title: "第一部分：找出三個最嚴重的問題", hint: "從這段程式碼中，挑出你認為最嚴重的三個問題，說明問題在哪裡、會造成什麼影響、以及你會怎麼修正。（建議作答長度：300–500字）", rows: 6, placeholder: "請在此輸入您的作答內容..." },
@@ -105,7 +130,6 @@ function initQuiz() {
     }
     document.getElementById('displayName').textContent = userName;
 
-    // 若已成功交卷，避免重複進入
     if (localStorage.getItem('quiz_completed_fully') === 'true') {
         window.location.replace('thankyou.html');
         return;
@@ -136,7 +160,6 @@ function renderQuestions(data) {
     restoreAnswers();
 }
 
-// 攔截特定鍵盤快捷鍵
 document.addEventListener('keydown', function(e) {
     if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
     if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) e.preventDefault();
@@ -159,7 +182,7 @@ function startTimer() {
         if (timeLeft <= 0) {
             clearInterval(countdown);
             timerDisplay.textContent = "時間到！";
-            sendWithFetch("時間到（強制提交）");
+            sendWithIframe("時間到（強制提交）");
         } else {
             const mins = Math.floor(timeLeft / 60);
             const secs = Math.floor(timeLeft % 60);
@@ -183,48 +206,41 @@ function restoreAnswers() {
     });
 }
 
-// 將資料轉換為 GAS 支援的 URLSearchParams 格式
-function createUrlEncodedData(statusText) {
-    const params = new URLSearchParams();
-    params.append("user_name", document.getElementById('displayName').textContent);
-    params.append("status", statusText);
-    
-    const currentAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
-    Object.keys(currentAnswers).forEach(key => {
-        params.append(key, currentAnswers[key] || "");
-    });
-    return params;
-}
-
-function sendWithFetch(statusText) {
+// 核心重構：利用隱藏 Iframe 進行安全表單提交
+function sendWithIframe(statusText) {
     if (isSubmitting) return;
     isSubmitting = true;
     
-    // 清空畫面，提供明確等待提示
-    document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; margin: 0;"><div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;"><h2 style="color: #2563eb;">正在發送答案，請稍候...</h2><p style="color: #64748b;">請勿關閉或重新整理視窗</p></div></div>';
+    // 1. 填入隱藏欄位資料
+    document.getElementById('gas_user_name').value = document.getElementById('displayName').textContent;
+    document.getElementById('gas_status').value = statusText;
 
-    fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors', // 略過 CORS 檢查
-        body: createUrlEncodedData(statusText)
-    }).then(() => {
-        // 發送完成，清除紀錄並跳轉
+    // 2. 顯示全螢幕遮罩（不破壞現有 DOM，確保提交動作順暢執行）
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    // 3. 配置表單的 action 與 target
+    form.action = GAS_URL;
+    form.method = "POST";
+    form.target = "hidden_iframe";
+
+    // 4. 監聽 Iframe 的載入事件。無論後端回傳 success 或是拋出錯誤，載入完成後即執行跳轉。
+    const iframe = document.getElementById('hidden_iframe');
+    iframe.onload = function() {
         localStorage.setItem('quiz_completed_fully', 'true');
         localStorage.removeItem('test_start_time');
         localStorage.removeItem('saved_answers');
         window.location.replace('thankyou.html');
-    }).catch(err => {
-        alert("發送異常，請確認網路連線。您先前的作答已暫存，請重試。");
-        isSubmitting = false; 
-        window.location.reload(); 
-    });
+    };
+
+    // 5. 執行原生表單提交
+    form.submit();
 }
 
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     const mins = Math.floor(timeLeft / 60);
     const secs = Math.floor(timeLeft % 60);
-    sendWithFetch(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
+    sendWithIframe(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
 });
 
 initQuiz();
