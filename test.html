@@ -56,9 +56,9 @@
 </div>
 
 <script>
-// 請將下方字串替換為 Google Apps Script 產生的網頁應用程式網址
+// 使用你提供的 GAS 網址
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyAst1Zb0_drVIEFYXkxXbeYuSiZtCATB_bIgRE-mGVpxoSQEMTZxg1ZgiDpNzs6Ozu/exec"; 
-const TEST_DURATION = 1 * 60; // 測試用：改為 3 分鐘
+const TEST_DURATION = 0.5 * 60; // 測試用：改為 0.5 分鐘 (30秒)
 let timeLeft;
 let isSubmitting = false; 
 
@@ -162,7 +162,7 @@ function startTimer() {
             sendWithFetch("時間到（強制提交）");
         } else {
             const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
+            const secs = Math.floor(timeLeft % 60);
             timerDisplay.textContent = `剩餘時間：${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
     }, 1000);
@@ -183,37 +183,39 @@ function restoreAnswers() {
     });
 }
 
-function createFormData(statusText) {
-    const finalData = new FormData();
-    finalData.append("user_name", document.getElementById('displayName').textContent);
-    finalData.append("status", statusText);
+// 將資料轉換為 GAS 支援的 URLSearchParams 格式
+function createUrlEncodedData(statusText) {
+    const params = new URLSearchParams();
+    params.append("user_name", document.getElementById('displayName').textContent);
+    params.append("status", statusText);
     
     const currentAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
     Object.keys(currentAnswers).forEach(key => {
-        finalData.append(key, currentAnswers[key]);
+        params.append(key, currentAnswers[key] || "");
     });
-    return finalData;
+    return params;
 }
 
 function sendWithFetch(statusText) {
     if (isSubmitting) return;
     isSubmitting = true;
     
-    // 清空畫面，防止複製，提供明確等待提示
+    // 清空畫面，提供明確等待提示
     document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; margin: 0;"><div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;"><h2 style="color: #2563eb;">正在發送答案，請稍候...</h2><p style="color: #64748b;">請勿關閉或重新整理視窗</p></div></div>';
 
     fetch(GAS_URL, {
         method: 'POST',
-        body: createFormData(statusText)
-    }).then(res => {
-        // GAS 接收成功，清除本地暫存紀錄並跳轉
+        mode: 'no-cors', // 略過 CORS 檢查
+        body: createUrlEncodedData(statusText)
+    }).then(() => {
+        // 發送完成，清除紀錄並跳轉
         localStorage.setItem('quiz_completed_fully', 'true');
         localStorage.removeItem('test_start_time');
         localStorage.removeItem('saved_answers');
         window.location.replace('thankyou.html');
     }).catch(err => {
         alert("發送異常，請確認網路連線。您先前的作答已暫存，請重試。");
-        // 允許使用者重新整理重試，資料不會遺失
+        isSubmitting = false; 
         window.location.reload(); 
     });
 }
@@ -221,7 +223,7 @@ function sendWithFetch(statusText) {
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     const mins = Math.floor(timeLeft / 60);
-    const secs = timeLeft % 60;
+    const secs = Math.floor(timeLeft % 60);
     sendWithFetch(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
 });
 
