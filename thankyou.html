@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研發工程師 招募測評 - 進行中</title>
+    <style>
+        :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
+        body { font-family: -apple-system, "Segoe UI", sans-serif; background: var(--bg-color); line-height: 1.6; padding: 20px; }
+        .container { max-width: 850px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { position: sticky; top: 0; background: white; padding: 15px 0; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        #timer { font-size: 1.2rem; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 5px 15px; border-radius: 20px; }
+        
+        .section-title { background: #1e293b; color: white; padding: 10px 15px; border-radius: 6px; margin-top: 30px; margin-bottom: 15px; }
+        .context-box { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #64748b; font-size: 0.95rem; }
+        .code-box { background: #0f172a; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: "Courier New", Courier, monospace; font-size: 0.9rem; overflow-x: auto; white-space: pre; margin: 15px 0; }
+        
+        .question { margin-bottom: 25px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+        .question p { font-weight: bold; margin-bottom: 10px; color: #0f172a; }
+        .hint { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; }
+        
+        textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 1rem; line-height: 1.5; }
+        textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        button { background: var(--primary-color); color: white; border: none; padding: 14px 28px; border-radius: 6px; cursor: pointer; font-size: 1.1rem; width: 100%; transition: 0.3s; font-weight: bold; margin-top: 20px; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9rem; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+        th { background: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="mainContainer">
+    <div class="header">
+        <h2>💻 研發工程師 招募測評</h2>
+        <div id="timer">剩餘時間：40:00</div>
+    </div>
+
+    <form id="quizForm">
+        <div style="margin: 20px 0; font-size: 1.1rem;">
+            受測者姓名：<strong id="displayName">載入中...</strong>
+            <span style="color: #64748b; font-size: 0.9rem; margin-left: 15px;">（請以繁體中文作答｜總建議時間：40分鐘）</span>
+        </div>
+
+        <hr>
+        
+        <div id="quizContent">
+            <p style="text-align: center; color: #64748b; padding: 40px;">正在載入題目，請稍候...</p>
+        </div>
+
+        <button type="submit" id="submitBtn" style="display: none;">提交測驗卷</button>
+    </form>
+</div>
+
+<script>
+    const FORMSPREE_URL = "https://formspree.io/f/mqkrbpzl"; 
+    const TEST_DURATION = 40 * 60; 
+    let timeLeft;
+    let isSubmitting = false; 
+
+    const timerDisplay = document.getElementById('timer');
+    const form = document.getElementById('quizForm');
+    const quizContent = document.getElementById('quizContent');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 模擬後端 API 資料
+    const mockApiData = [
+        {
+            sectionTitle: "題目一：PRD分析題（建議作答時間：20分鐘）",
+            contextHtml: `<strong>【情境說明】</strong><br>你剛加入技術部門，PM傳來一份促銷活動的需求草稿，希望下週開始排開發。請閱讀這份PRD，並提交你的書面回應。<br><br><strong>📄 PRD草稿：促銷活動自動推播系統</strong><br>節慶促銷期間，業務團隊需要手動通知系統設定折扣，常常發生活動開始後才上線、或時間設定錯誤導致超賣的問題。希望打造一套系統，讓業務可以自己設定活動，系統自動在對的時間推播給用戶。
+            <table>
+                <tr><th style="width: 25%;">項目</th><th>內容</th></tr>
+                <tr><td><strong>功能需求</strong></td><td>1. 業務可以新增活動，設定名稱、時間、折扣比例、適用商品<br>2. 活動時間到了，系統自動推播App通知給用戶<br>3. 推播要快，最好可以即時<br>4. 活動結束後折扣自動取消<br>5. 如果推播失敗要重試</td></tr>
+                <tr><td><strong>技術方向<br>(PM 建議)</strong></td><td>用一個排程服務每分鐘掃描活動表，找到該上線的就推播，推播用現有的通知API。</td></tr>
+                <tr><td><strong>非功能需求</strong></td><td>系統要穩定、速度要快、用戶體驗要好。</td></tr>
+                <tr><td><strong>上線時機</strong></td><td>下個月的雙十一活動前上線，大約還有三週。</td></tr>
+            </table>`,
+            questions: [
+                { id: "q1_part1", title: "第一部分：找出問題", hint: "請列出這份PRD中你認為有問題或不清楚的地方，說明問題是什麼、以及你的看法或建議。（建議作答長度：300–500字）", rows: 6, placeholder: "請在此輸入您的作答內容..." },
+                { id: "q1_part2", title: "第二部分：系統設計概述", hint: "假設PRD問題已釐清，請說明你會如何設計這個系統的核心架構——主要元件、元件間如何溝通、以及你認為最需要處理的技術風險。", rows: 6, placeholder: "請在此輸入您的作答內容..." },
+                { id: "q1_part3", title: "第三部分：AI協作說明", hint: "作答過程中是否有使用AI工具？如是：請說明你在哪個環節使用、怎麼用、以及你自己負責判斷什麼。", rows: 3, placeholder: "有/無。若有，請說明使用環節與協作邏輯..." }
+            ]
+        },
+        {
+            sectionTitle: "題目二：Code Review題（建議作答時間：20分鐘）",
+            contextHtml: `<strong>【情境說明】</strong><br>以下是一位同事（或AI工具）寫的促銷活動推播功能程式碼。請做Code Review，找出你認為最嚴重的三個問題，並提供優化方向建議。
+            <div class="code-box">import time\nimport requests\nfrom database import get_db\n\ndef send_promotions():\n    db = get_db()\n    promotions = db.query('SELECT * FROM promotions')\n   \n    for promo in promotions:\n        if promo['start_time'] <= time.time():\n            users = db.query('SELECT * FROM users')\n            for user in users:\n                try:\n                    requests.post(\n                        'http://notify-api/send',\n                        json={\n                            'user_id': user['id'],\n                            'message': '限時優惠！' + promo['name'] + '折扣開始！',\n                            'discount': promo['discount']\n                        },\n                    )\n                except:\n                    pass\n       \n    db.close()\n\nwhile True:\n    send_promotions()\n    time.sleep(60)</div>`,
+            questions: [
+                { id: "q2_part1", title: "第一部分：找出三個最嚴重的問題", hint: "從這段程式碼中，挑出你認為最嚴重的三個問題，說明問題在哪裡、會造成什麼影響、以及你會怎麼修正。（建議作答長度：300–500字）", rows: 6, placeholder: "請在此輸入您的作答內容..." },
+                { id: "q2_part2", title: "第二部分：優化方向建議", hint: "如果要讓這段程式碼能上到正式環境，你還會做哪些調整？請說明你的優化方向與優先順序。", rows: 6, placeholder: "請在此輸入您的作答內容..." },
+                { id: "q2_part3", title: "第三部分：AI協作說明", hint: "作答過程中是否有使用AI工具？請說明你在哪個環節使用、怎麼用、以及你自己負責判斷什麼。沒有使用也沒關係，如實說明即可。", rows: 3, placeholder: "有/無。若有，請說明使用環節與協作邏輯..." }
+            ]
+        }
+    ];
+
+    function initQuiz() {
+        let userName = localStorage.getItem('saved_user_name') || sessionStorage.getItem('quiz_user_name');
+        if (!userName || userName === "null") {
+            alert('未偵測到有效的受測者姓名，請重新登入。');
+            window.location.href = 'index.html';
+            return;
+        }
+        document.getElementById('displayName').textContent = userName;
+
+        if (localStorage.getItem('quiz_submitted') === 'true') {
+            window.location.replace('thankyou.html');
+            return;
+        }
+
+        renderQuestions(mockApiData);
+        startTimer();
+    }
+
+    function renderQuestions(data) {
+        let htmlContent = '';
+        data.forEach(section => {
+            htmlContent += `<div class="section-title">${section.sectionTitle}</div>`;
+            htmlContent += `<div class="context-box">${section.contextHtml}</div>`;
+            
+            section.questions.forEach(q => {
+                htmlContent += `
+                <div class="question">
+                    <p>${q.title}</p>
+                    <div class="hint">${q.hint}</div>
+                    <textarea name="${q.id}" rows="${q.rows}" placeholder="${q.placeholder}"></textarea>
+                </div>`;
+            });
+        });
+        
+        quizContent.innerHTML = htmlContent;
+        submitBtn.style.display = 'block';
+        restoreAnswers();
+    }
+
+    // 攔截特定鍵盤快捷鍵
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) e.preventDefault();
+        if (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) e.preventDefault();
+        if (e.ctrlKey && e.shiftKey && (e.key === 'c' || e.key === 'C')) e.preventDefault();
+        if (e.ctrlKey && e.shiftKey && (e.key === 'j' || e.key === 'J')) e.preventDefault();
+    });
+
+    function startTimer() {
+        let startTime = localStorage.getItem('test_start_time');
+        if (!startTime) {
+            startTime = Date.now();
+            localStorage.setItem('test_start_time', startTime);
+        }
+
+        const countdown = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            timeLeft = TEST_DURATION - elapsed;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                timerDisplay.textContent = "時間到！";
+                sendWithFetch("時間到（強制提交）");
+            } else {
+                const mins = Math.floor(timeLeft / 60);
+                const secs = timeLeft % 60;
+                timerDisplay.textContent = `剩餘時間：${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+        }, 1000);
+    }
+
+    form.addEventListener('input', () => {
+        const formData = new FormData(form);
+        const savedAnswers = {};
+        formData.forEach((value, key) => { savedAnswers[key] = value; });
+        localStorage.setItem('saved_answers', JSON.stringify(savedAnswers));
+    });
+
+    function restoreAnswers() {
+        const localAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
+        Object.keys(localAnswers).forEach(key => {
+            const textarea = form.querySelector(`textarea[name="${key}"]`);
+            if (textarea) textarea.value = localAnswers[key];
+        });
+    }
+
+    function createFormData(statusText) {
+        const finalData = new FormData();
+        finalData.append("user_name", document.getElementById('displayName').textContent);
+        finalData.append("status", statusText);
+        
+        const currentAnswers = JSON.parse(localStorage.getItem('saved_answers') || '{}');
+        Object.keys(currentAnswers).forEach(key => {
+            finalData.append(key, currentAnswers[key]);
+        });
+        return finalData;
+    }
+
+    function sendWithFetch(statusText) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        
+        localStorage.setItem('quiz_submitted', 'true');
+        document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; margin: 0;"><div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;"><h2 style="color: #2563eb;">正在發送答案，請稍候...</h2></div></div>';
+
+        fetch(FORMSPREE_URL, {
+            method: 'POST',
+            body: createFormData(statusText),
+            headers: { 'Accept': 'application/json' }
+        }).then(res => {
+            if (res.ok) {
+                localStorage.setItem('quiz_completed_fully', 'true');
+                localStorage.removeItem('test_start_time');
+                localStorage.removeItem('saved_answers');
+                window.location.replace('thankyou.html');
+            }
+        }).catch(err => {
+            alert("發送異常，請確認網路連線。");
+        });
+    }
+
+    function sendWithBeacon(statusText) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        localStorage.setItem('quiz_submitted', 'true');
+        navigator.sendBeacon(FORMSPREE_URL, createFormData(statusText));
+        localStorage.setItem('quiz_completed_fully', 'true');
+        localStorage.removeItem('test_start_time');
+        localStorage.removeItem('saved_answers');
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        sendWithFetch(`手動準時提交（剩餘 ${mins}分${secs}秒）`);
+    });
+
+    window.addEventListener('pagehide', () => {
+        if (localStorage.getItem('quiz_completed_fully') !== 'true') {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            sendWithBeacon(`中途關閉或重整（當時剩餘 ${mins}分${secs}秒）`);
+        }
+    });
+
+    initQuiz();
+</script>
+
+</body>
+</html>
